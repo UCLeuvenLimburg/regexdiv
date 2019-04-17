@@ -21,3 +21,13 @@ command :regex do |cmd|
   end
 end
 
+
+command :fsm do |cmd|
+  cmd.syntax = 'regexdiv graph [base] [modulo]'
+  cmd.description = 'Generate an FSM that checks for divisibility in the given base'
+  cmd.action do |args, options|
+    base, modulo = args.map(&:to_i)
+
+    puts Regexdiv::build_graph(base: base, modulo: modulo)
+  end
+end
