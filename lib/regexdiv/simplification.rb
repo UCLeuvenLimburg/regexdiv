@@ -30,29 +30,9 @@ module Regexdiv
     end
   end
 
-  def self.literals(ast)
-    case ast
-    when Literal
-      [ ast.value ]
-
-    when Sequence
-      ast.operands.flat_map do |operand|
-        literals operand
-      end
-
-    when Alternatives
-      ast.operands.flat_map do |operand|
-        literals operand
-      end
-
-    when Repetition
-      literals ast.operand
-    end
-  end
-
   def self.sort_operands(ast)
     sorted_operands = ast.operands.sort do |x, y|
-      [ 'z', *literals(x) ].min <=> [ 'z', *literals(y) ].min
+      [ 'z', *x.literals ].min <=> [ 'z', *y.literals ].min
     end
 
     ast.class.new(sorted_operands)
@@ -60,14 +40,22 @@ module Regexdiv
 
   def self.factor_alternatives_suffix(ast)
     if Alternatives === ast
-      if ast.operands.all? { |operand| Sequence === operand } and ast.operands.map { |seq| seq.operands.last }.uniq.size == 1
-        alts = Alternatives.new(ast.operands.map do |seq|
+      alts = ast.operands.map do |operand|
+        if Literal === operand
+          Sequence.new( [ Epsilon.new, operand ] )
+        else
+          operand
+        end
+      end
+
+      if alts.size > 1 and alts.all? { |operand| Sequence === operand } and alts.map { |seq| seq.operands.last }.uniq.size == 1
+        newalts = Alternatives.new(alts.map do |seq|
           Sequence.new(seq.operands[0...-1])
         end)
 
-        factored = ast.operands.first.operands.last
+        factored = alts.first.operands.last
 
-        simplify Sequence.new([alts, factored])
+        simplify Sequence.new([newalts, factored])
       else
         ast
       end
@@ -78,14 +66,22 @@ module Regexdiv
 
   def self.factor_alternatives_prefix(ast)
     if Alternatives === ast
-      if ast.operands.all? { |operand| Sequence === operand } and ast.operands.map { |seq| seq.operands.first }.uniq.size == 1
-        alts = Alternatives.new(ast.operands.map do |seq|
+      alts = ast.operands.map do |operand|
+        if Literal === operand
+          Sequence.new( [ operand, Epsilon.new ] )
+        else
+          operand
+        end
+      end
+
+      if alts.size > 1 and alts.all? { |operand| Sequence === operand } and alts.map { |seq| seq.operands.first }.uniq.size == 1
+        newalts = Alternatives.new(alts.map do |seq|
           Sequence.new(seq.operands[1..-1])
         end)
 
-        factored = ast.operands.first.operands.first
+        factored = alts.first.operands.first
 
-        simplify Sequence.new([factored, alts])
+        simplify Sequence.new([factored, newalts])
       else
         ast
       end
@@ -109,8 +105,7 @@ module Regexdiv
       ast = Alternatives.new(ast.operands.map { |operand| simplify(operand) })
       ast = sort_operands(ast)
       ast = Alternatives.new(flatten_alternatives(ast.operands))
-      ast = factor_alternatives_suffix(ast)
-      ast = factor_alternatives_prefix(ast)
+      ast = factor_alternatives(ast)
       ast = unpack_singleton(ast)
 
     when Repetition

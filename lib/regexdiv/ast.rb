@@ -1,4 +1,22 @@
 module Regexdiv
+  class Epsilon
+    def to_s
+      Regexdiv.show self
+    end
+
+    def inspect
+      to_s
+    end
+
+    def ==(x)
+      Epsilon === x
+    end
+
+    def literals
+      []
+    end
+  end
+
   Literal = Struct.new :value do
     def to_s
       Regexdiv.show self
@@ -6,6 +24,10 @@ module Regexdiv
 
     def inspect
       value
+    end
+
+    def literals
+      [ value ]
     end
   end
 
@@ -15,7 +37,11 @@ module Regexdiv
     end
 
     def inspect
-      "S(#{operands.map(&:inspect).join})"
+      "S(#{operands.map(&:inspect).join(',')})"
+    end
+
+    def literals
+      operands.flat_map(&:literals)
     end
   end
 
@@ -27,6 +53,10 @@ module Regexdiv
     def inspect
       "A(#{operands.map(&:inspect).join('|')})"
     end
+
+    def literals
+      operands.flat_map(&:literals)
+    end
   end
 
   Repetition = Struct.new :operand do
@@ -37,10 +67,17 @@ module Regexdiv
     def inspect
       "#{operand.inspect}*"
     end
+
+    def literals
+      operand.literals
+    end
   end
 
   def self.show(regex, prec=0)
     case regex
+    when Epsilon
+      '()'
+
     when Literal
       regex.value
 

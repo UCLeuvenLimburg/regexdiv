@@ -1,3 +1,7 @@
+def eps
+  Regexdiv::Epsilon.new
+end
+
 def lit(x)
   Regexdiv::Literal.new x
 end
@@ -91,23 +95,25 @@ RSpec.describe 'Formatting' do
 end
 
 RSpec.describe 'derive_regex' do
-  (2..3).each do |base|
-    (2..5).each do |modulo|
-      context("base #{base}, modulo #{modulo}") do
-        r = Regexdiv::derive_regex(base: base, modulo: modulo)
+  # skip 'foo' do
+    (2..3).each do |base|
+      (2..5).each do |modulo|
+        context("base #{base}, modulo #{modulo}") do
+          r = Regexdiv::derive_regex(base: base, modulo: modulo)
 
-        (0..100).each do |k|
-          it "works on #{k} (#{k.to_s(base)})" do
-            if k % modulo == 0
-              expect(r =~ k.to_s(base)).to be_truthy
-            else
-              expect(r =~ k.to_s(base)).to be_falsey
+          (0..100).each do |k|
+            it "works on #{k} (#{k.to_s(base)})" do
+              if k % modulo == 0
+                expect(r =~ k.to_s(base)).to be_truthy
+              else
+                expect(r =~ k.to_s(base)).to be_falsey
+              end
             end
           end
         end
       end
     end
-  end
+  # end
 end
 
 RSpec.describe 'simplify' do
@@ -187,6 +193,22 @@ RSpec.describe 'simplify' do
     regex = alt( 'xya', 'xyb' )
     actual = Regexdiv::simplify regex
     expected = seq( 'x', 'y', alt( 'a', 'b' ) )
+
+    expect(actual).to eq expected
+  end
+
+  it "xa|x -> x(a|ε)" do
+    regex = alt( 'xa', 'x' )
+    actual = Regexdiv::simplify regex
+    expected = seq( 'x', alt( 'a', eps ) )
+
+    expect(actual).to eq expected
+  end
+
+  it "ax|x -> (a|ε)x" do
+    regex = alt( 'ax', 'x' )
+    actual = Regexdiv::simplify regex
+    expected = seq( alt( 'a', eps ), 'x' )
 
     expect(actual).to eq expected
   end
