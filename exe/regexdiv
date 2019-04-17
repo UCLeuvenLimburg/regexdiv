@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'bundler/setup'
+require 'commander/import'
+require 'regexdiv'
+
+
+program :name, 'Regex Generator'
+program :version, Regexdiv::VERSION
+program :description, 'Command line interface for generating regexes that determine divisibility'
+
+
+command :regex do |cmd|
+  cmd.syntax = 'regexdiv regex [base] [modulo]'
+  cmd.description = 'Generate a regex that checks for divisibility in the given base'
+  cmd.action do |args, options|
+    base, modulo = args.map(&:to_i)
+
+    puts Regexdiv::derive_regex_string(base: base, modulo: modulo)
+  end
+end
+
