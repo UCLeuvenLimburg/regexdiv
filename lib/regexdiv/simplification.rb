@@ -52,10 +52,50 @@ module Regexdiv
 
   def self.sort_operands(ast)
     sorted_operands = ast.operands.sort do |x, y|
-      literals(x).min <=> literals(y).min
+      [ 'z', *literals(x) ].min <=> [ 'z', *literals(y) ].min
     end
 
     ast.class.new(sorted_operands)
+  end
+
+  def self.factor_alternatives_suffix(ast)
+    if Alternatives === ast
+      if ast.operands.all? { |operand| Sequence === operand } and ast.operands.map { |seq| seq.operands.last }.uniq.size == 1
+        alts = Alternatives.new(ast.operands.map do |seq|
+          Sequence.new(seq.operands[0...-1])
+        end)
+
+        factored = ast.operands.first.operands.last
+
+        simplify Sequence.new([alts, factored])
+      else
+        ast
+      end
+    else
+      ast
+    end
+  end
+
+  def self.factor_alternatives_prefix(ast)
+    if Alternatives === ast
+      if ast.operands.all? { |operand| Sequence === operand } and ast.operands.map { |seq| seq.operands.first }.uniq.size == 1
+        alts = Alternatives.new(ast.operands.map do |seq|
+          Sequence.new(seq.operands[1..-1])
+        end)
+
+        factored = ast.operands.first.operands.first
+
+        simplify Sequence.new([factored, alts])
+      else
+        ast
+      end
+    else
+      ast
+    end
+  end
+
+  def self.factor_alternatives(ast)
+    factor_alternatives_prefix(factor_alternatives_suffix(ast))
   end
 
   def self.simplify(ast)
@@ -69,6 +109,8 @@ module Regexdiv
       ast = Alternatives.new(ast.operands.map { |operand| simplify(operand) })
       ast = sort_operands(ast)
       ast = Alternatives.new(flatten_alternatives(ast.operands))
+      ast = factor_alternatives_suffix(ast)
+      ast = factor_alternatives_prefix(ast)
       ast = unpack_singleton(ast)
 
     when Repetition

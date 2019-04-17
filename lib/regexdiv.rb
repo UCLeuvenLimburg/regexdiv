@@ -62,7 +62,7 @@ module Regexdiv
         from = m
         to = (m * base + digit) % modulo
 
-        graph.add_arc(from, to, Literal.new(digit))
+        graph.add_arc(from, to, Literal.new(digit.to_s(base)))
       end
     end
 

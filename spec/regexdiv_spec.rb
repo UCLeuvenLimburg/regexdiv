@@ -2,12 +2,24 @@ def lit(x)
   Regexdiv::Literal.new x
 end
 
+def parse(x)
+  if String === x
+    if x.size == 1
+      lit x
+    else
+      seq( *x.chars.map { |y| lit(y) } )
+    end
+  else
+    x
+  end
+end
+
 def seq(*xs)
-  Regexdiv::Sequence.new xs
+  Regexdiv::Sequence.new(xs.map { |x| parse x })
 end
 
 def alt(*xs)
-  Regexdiv::Alternatives.new xs
+  Regexdiv::Alternatives.new(xs.map { |x| parse x })
 end
 
 def rep(x)
@@ -78,7 +90,6 @@ RSpec.describe 'Formatting' do
   end
 end
 
-
 RSpec.describe 'derive_regex' do
   (2..3).each do |base|
     (2..5).each do |modulo|
@@ -101,17 +112,17 @@ end
 
 RSpec.describe 'simplify' do
   it "(ab)(cd) -> abcd" do
-    regex = seq( seq( lit('a'), lit('b') ), seq( lit('c'), lit('d') ) )
+    regex = seq('ab', 'cd')
     actual = Regexdiv::simplify regex
-    expected = seq( lit('a'), lit('b'), lit('c'), lit('d') )
+    expected = parse('abcd')
 
     expect(actual).to eq expected
   end
 
   it "(a|b)|(c|d) -> a|b|c|d" do
-    regex = alt( alt( lit('a'), lit('b') ), alt( lit('c'), lit('d') ) )
+    regex = alt( alt( 'a', 'b' ), alt( 'c', 'd' ) )
     actual = Regexdiv::simplify regex
-    expected = alt( lit('a'), lit('b'), lit('c'), lit('d') )
+    expected = alt( 'a', 'b', 'c', 'd' )
 
     expect(actual).to eq expected
   end
@@ -141,9 +152,41 @@ RSpec.describe 'simplify' do
   end
 
   it "b|a -> a|b" do
-    regex = alt( lit('b'), lit('a') )
+    regex = alt( 'b', 'a' )
     actual = Regexdiv::simplify regex
     expected = alt( lit('a'), lit('b') )
+
+    expect(actual).to eq expected
+  end
+
+  it "ax|bx -> (a|b)x" do
+    regex = alt( 'ax', 'bx' )
+    actual = Regexdiv::simplify regex
+    expected = seq( alt( 'a', 'b' ), 'x' )
+
+    expect(actual).to eq expected
+  end
+
+  it "axy|bxy -> (a|b)xy" do
+    regex = alt( 'axy', 'bxy' )
+    actual = Regexdiv::simplify regex
+    expected = seq( alt( 'a', 'b' ), 'x', 'y' )
+
+    expect(actual).to eq expected
+  end
+
+  it "xa|xb -> x(a|b)" do
+    regex = alt( 'xa', 'xb' )
+    actual = Regexdiv::simplify regex
+    expected = seq( 'x', alt( 'a', 'b' ) )
+
+    expect(actual).to eq expected
+  end
+
+  it "xya|xyb -> xy(a|b)" do
+    regex = alt( 'xya', 'xyb' )
+    actual = Regexdiv::simplify regex
+    expected = seq( 'x', 'y', alt( 'a', 'b' ) )
 
     expect(actual).to eq expected
   end
