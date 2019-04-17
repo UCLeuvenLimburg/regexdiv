@@ -108,7 +108,7 @@ RSpec.describe 'simplify' do
     expect(actual).to eq expected
   end
 
-  it "(a|b)|(c|d) -> abcd" do
+  it "(a|b)|(c|d) -> a|b|c|d" do
     regex = alt( alt( lit('a'), lit('b') ), alt( lit('c'), lit('d') ) )
     actual = Regexdiv::simplify regex
     expected = alt( lit('a'), lit('b'), lit('c'), lit('d') )

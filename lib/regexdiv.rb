@@ -1,4 +1,5 @@
 require 'regexdiv/ast'
+require 'regexdiv/simplification'
 
 
 module Regexdiv
@@ -108,6 +109,7 @@ module Regexdiv
       g = remove_node(g, g.node_count - 1)
     end
 
+    # simplify(Repetition.new(g.arc(0,0)))
     Repetition.new(g.arc(0,0))
   end
 
