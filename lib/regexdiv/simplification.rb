@@ -30,23 +30,52 @@ module Regexdiv
     end
   end
 
-  def self.simplify(regex)
-    case regex
+  def self.literals(ast)
+    case ast
+    when Literal
+      [ ast.value ]
+
     when Sequence
-      regex = Sequence.new(regex.operands.map { |operand| simplify(operand) })
-      regex = Sequence.new(flatten_sequences(regex.operands))
-      regex = unpack_singleton(regex)
+      ast.operands.flat_map do |operand|
+        literals operand
+      end
 
     when Alternatives
-      regex = Alternatives.new(regex.operands.map { |operand| simplify(operand) })
-      regex = Alternatives.new(flatten_alternatives(regex.operands))
-      regex = unpack_singleton(regex)
+      ast.operands.flat_map do |operand|
+        literals operand
+      end
 
     when Repetition
-      regex = Repetition.new(simplify(regex.operand))
+      literals ast.operand
+    end
+  end
+
+  def self.sort_operands(ast)
+    sorted_operands = ast.operands.sort do |x, y|
+      literals(x).min <=> literals(y).min
+    end
+
+    ast.class.new(sorted_operands)
+  end
+
+  def self.simplify(ast)
+    case ast
+    when Sequence
+      ast = Sequence.new(ast.operands.map { |operand| simplify(operand) })
+      ast = Sequence.new(flatten_sequences(ast.operands))
+      ast = unpack_singleton(ast)
+
+    when Alternatives
+      ast = Alternatives.new(ast.operands.map { |operand| simplify(operand) })
+      ast = sort_operands(ast)
+      ast = Alternatives.new(flatten_alternatives(ast.operands))
+      ast = unpack_singleton(ast)
+
+    when Repetition
+      ast = Repetition.new(simplify(ast.operand))
 
     else
-      regex
+      ast
     end
   end
 end

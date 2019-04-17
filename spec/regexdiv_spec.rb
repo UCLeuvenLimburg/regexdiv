@@ -139,4 +139,12 @@ RSpec.describe 'simplify' do
 
     expect(actual).to eq expected
   end
+
+  it "b|a -> a|b" do
+    regex = alt( lit('b'), lit('a') )
+    actual = Regexdiv::simplify regex
+    expected = alt( lit('a'), lit('b') )
+
+    expect(actual).to eq expected
+  end
 end
