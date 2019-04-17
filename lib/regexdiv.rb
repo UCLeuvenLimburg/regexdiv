@@ -109,8 +109,7 @@ module Regexdiv
       g = remove_node(g, g.node_count - 1)
     end
 
-    # simplify(Repetition.new(g.arc(0,0)))
-    Repetition.new(g.arc(0,0))
+    simplify(Repetition.new(g.arc(0,0)))
   end
 
   def self.derive_regex_string(**kwargs)

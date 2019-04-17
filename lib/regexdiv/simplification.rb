@@ -15,7 +15,7 @@ module Regexdiv
   def self.flatten_alternatives(rs)
     rs.flat_map do |r|
       if Alternatives === r
-        flatten_sequences(r.operands)
+        flatten_alternatives(r.operands)
       else
         [r]
       end
